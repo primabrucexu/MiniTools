@@ -1,0 +1,11 @@
+# Build outputs
+bin/
+obj/
+
+# Installed dependencies
+node_modules/
+
+# Visual Studio local settings
+.vs/
+*.user
+*.suo

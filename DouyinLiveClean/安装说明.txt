@@ -1,0 +1,69 @@
+抖音直播自动关闭弹幕和礼物特效 v1.3.0
+
+更新或安装
+打开油猴中的旧脚本，用 douyin-live-clean.user.js 的全部内容替换，按 Ctrl+S 保存，再刷新抖音。
+首次安装：Tampermonkey → 添加新脚本 → 替换默认内容 → 保存。
+仅保留一个版本启用，避免旧版仍然模拟点击、干扰新版。
+
+本次修复
+三项分别等待自己的接口就绪，在同一轮发起，不再依次展开菜单和固定等待 1.5 秒。
+没有模拟鼠标点击、悬停或快捷键，也没有隐藏弹幕画布。
+1. 弹幕：调用原生 roomStore.setDanmakuSwitch(false)，兼容停止旧版 danmu 插件。
+2. 礼物特效：调用原生 giftStore.setEffectSwitchStatus(false)。
+   内部 false 表示关闭特效，网页的“屏蔽礼物特效”会显示为开启。
+3. 清晰度：调用 player.getPlugin('liveStream').handleChangeQuality(...)。
+   选择原生接口实际提供、当前可选的最高档位，包含原画、1440P、蓝光、超清、高清、标清。
+   尊重网页已有画质限制；不自动登录，不绕过受限档位。
+   等待原生切换回调，并回读当前画质和自动调档状态后才确认成功。
+
+生效范围
+- https://live.douyin.com/直播间编号
+- https://www.douyin.com/follow/live/直播间编号
+支持站内进入直播和换房。右侧聊天区保留。
+三项完成后不持续强制设置；你仍可以手动开启弹幕、特效或降低画质。
+刷新、换房或原生播放器实例更换时重新初始化。
+接口未就绪时最多等待约 30 秒；某项失败不阻塞其他项，控制台会输出“抖音直播清爽”提示。
+三个请求可在同一轮发起；实际画质切换仍需等待播放器和网络，无法保证三个视觉效果在同一瞬间完成。
+
+为什么匹配整个 www.douyin.com
+主站可能通过 SPA 导航进入关注页直播，油猴不一定重新注入脚本。
+因此预先加载脚本，但只有 /follow/live/ 路径会执行操作，普通短视频页不触发设置。
+
+验证与限制
+JavaScript 语法检查及 21 项受控 API 回归测试通过。
+覆盖两个入口、同轮执行、延迟接口、异步回调、异常隔离、手动设置保留、SPA 换房、
+同 store 房间变化、画质限制、重复档位和超时后换房恢复。
+受控环境中，三个原生方法在首次检查的同一轮发起；这不是实站测速。
+
+当前公开客户端源码明确暴露 window.__STORE__，并包含 /follow/live/:webRid 路由。
+但尚未在用户已登录浏览器中完成两个入口的真实端到端验证。
+无登录态请求关注页会被重定向，无法证明所有关注页版本均暴露相同全局对象。
+这些是抖音内部方法，不是稳定的公开 API。网页改版可能需要更新脚本。
+缺少原生接口时不会偷偷退回模拟点击；会等待并报告未完成的项目。
+
+检查方法
+刷新进入直播间，查看原生面板：
+“弹幕开关”关闭，“屏蔽礼物特效”开启，清晰度为当前可选最高档，且不是自动模式。
+若有一项未生效，可提供完整直播间网址和控制台包含“抖音直播清爽”的提示。
+
+源码依据
+RootStore、原生状态方法：
+https://lf-webcast-platform.bytetos.com/obj/webcast-platform-cdn/webcast/douyin_live/client-entry~1.8c002817.js
+原生弹幕开关：
+https://lf-webcast-platform.bytetos.com/obj/webcast-platform-cdn/webcast/douyin_live/chunks/DanmaSetting.7bd260f7.js
+原生礼物开关：
+https://lf-webcast-platform.bytetos.com/obj/webcast-platform-cdn/webcast/douyin_live/chunks/EffectSwitchPlugin.0279f90b.js
+原生清晰度菜单：
+https://lf-webcast-platform.bytetos.com/obj/webcast-platform-cdn/webcast/douyin_live/chunks/QualitySwitchPluginV2.45b0552e.js
+播放器及流切换实现：
+https://lf-webcast-platform.bytetos.com/obj/webcast-platform-cdn/webcast/douyin_live//libs/new-player-merged.2b62795a.js
+
+来源与许可
+旧版控件定位适配自 Frequenk“网页抖音体验增强”v5.8：
+https://greasyfork.org/zh-CN/scripts/539942/code
+本版移除鼠标操作，改用上述原生方法。继续按 GPL-3.0 发布，许可全文附于 COPYING.txt。
+没有外部运行依赖。
+
+油猴安装说明
+https://www.tampermonkey.net/faq.php#Q102
+
