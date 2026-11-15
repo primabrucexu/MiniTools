@@ -63,13 +63,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\DualScreenSwap\tests\run-t
 
 ## 抖音直播清理
 
-当前脚本版本为 **1.4.0**。脚本直接调用网页原生状态和播放器方法，在进入直播间后关闭弹幕、屏蔽礼物特效、选择当前可用的最高画质，并自动进入网页全屏，保留浏览器标签栏和右侧聊天区。四项独立执行；完成后可手动调整设置或退出网页全屏，换房、刷新或播放器实例更换时重新初始化。网页全屏受限或已处于浏览器全屏、画中画时，跳过自动进入网页全屏。
+当前脚本版本为 **1.4.1**。脚本直接调用网页原生状态和播放器方法，在进入直播间后关闭弹幕、屏蔽礼物特效、选择当前可用的最高画质，并自动进入网页全屏，保留浏览器标签栏和右侧聊天区。四项独立执行；完成后可手动调整设置或退出网页全屏，换房、刷新或播放器实例更换时重新初始化。网页全屏受限或已处于浏览器全屏、画中画时，跳过自动进入网页全屏。
 
 安装步骤：
 
 1. 在浏览器中安装并启用 Tampermonkey。
-2. 选择“添加新脚本”，将 [douyin-live-clean.user.js](DouyinLiveClean/douyin-live-clean.user.js) 的全部内容替换到编辑器中。
-3. 保存并刷新抖音页面。更新时替换已有脚本内容，仅保留一个版本启用。
+2. 打开 [GitHub Raw 安装链接](https://raw.githubusercontent.com/primabrucexu/MiniTools/main/DouyinLiveClean/douyin-live-clean.user.js)，在油猴安装页确认安装。也可选择“添加新脚本”，粘贴 [douyin-live-clean.user.js](DouyinLiveClean/douyin-live-clean.user.js) 的全部内容并保存。
+3. 刷新抖音页面，仅保留一个版本启用。旧版首次升级到 1.4.1 需要手动替换内容或从上述链接重新安装一次，才能获得自动更新地址。
+
+在油猴设置中启用脚本更新检查后，会按设定周期从 GitHub 获取新版。后续发布需递增脚本的 `@version` 并推送到 `main`；完整更新规则见[工具 README](DouyinLiveClean/README.md)。
 
 支持 `https://live.douyin.com/直播间编号` 和 `https://www.douyin.com/follow/live/直播间编号`，包括站内导航进入直播间。脚本匹配整个主站是为了接住站内导航，普通短视频页不会执行设置。
 
@@ -81,7 +83,7 @@ node --check .\DouyinLiveClean\douyin-live-clean.user.js
 node .\DouyinLiveClean\tests\test-native-api.cjs
 ```
 
-v1.4.0 已通过 JavaScript 语法检查及 **34 项受控 API 回归测试**。原有三项功能已获用户实际使用的良好反馈；新增网页全屏尚未完成登录后的真实直播间验证。脚本依赖抖音内部接口，网页改版可能需要适配；画质选择和网页全屏遵守页面已有权限限制。详细行为、排查方式和来源见[工具 README](DouyinLiveClean/README.md)。
+v1.4.1 已通过 JavaScript 语法检查及 **34 项受控 API 回归测试**。原有三项功能已获用户实际使用的良好反馈；网页全屏尚未完成登录后的真实直播间验证。自动更新已核对元数据和 Raw 文件，尚未在油猴中实际验证更新流程。脚本依赖抖音内部接口，网页改版可能需要适配；画质选择和网页全屏遵守页面已有权限限制。详细行为、排查方式和来源见[工具 README](DouyinLiveClean/README.md)。
 
 ## 协作与许可
 

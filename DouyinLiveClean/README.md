@@ -1,6 +1,6 @@
 # 抖音直播清理（DouyinLiveClean）
 
-一个用于 Tampermonkey（油猴）的脚本。当前版本为 **1.4.0**，进入直播间后自动完成四项设置：
+一个用于 Tampermonkey（油猴）的脚本。当前版本为 **1.4.1**，进入直播间后自动完成四项设置：
 
 - 关闭画面上的弹幕，保留右侧聊天区。
 - 开启网页的“屏蔽礼物特效”选项。
@@ -10,10 +10,14 @@
 ## 安装与更新
 
 1. 在浏览器中安装并启用 Tampermonkey。
-2. 点击“添加新脚本”，将 [douyin-live-clean.user.js](douyin-live-clean.user.js) 的全部内容替换到编辑器中。
-3. 按 `Ctrl + S` 保存，再刷新抖音页面。
+2. 打开 [GitHub Raw 安装链接](https://raw.githubusercontent.com/primabrucexu/MiniTools/main/DouyinLiveClean/douyin-live-clean.user.js)，在油猴安装页确认安装。
+3. 刷新抖音页面。也可手动选择“添加新脚本”，粘贴 [douyin-live-clean.user.js](douyin-live-clean.user.js) 的全部内容，按 `Ctrl + S` 保存。
 
-更新时直接替换已有脚本的全部内容。仅保留一个版本启用，避免不同版本相互干扰。脚本没有外部运行依赖，使用时不需要 Node.js。
+**旧版首次升级到 1.4.1 时，需要手动替换已有脚本的全部内容，或从 Raw 链接重新安装一次**，让本地脚本获得更新地址。仅修改 GitHub 不会为此前手动粘贴的旧版自动补上更新地址。仅保留一个版本启用，避免不同版本相互干扰。脚本没有外部运行依赖，使用时不需要 Node.js。
+
+脚本的 `@updateURL` 和 `@downloadURL` 均指向上述 `main` 分支 Raw 地址。在油猴设置中启用脚本更新检查，设置检查间隔（例如每天），并确认该脚本允许检查更新；也可以手动执行“检查更新”。自动更新按检查周期发生，不会在 GitHub 推送后立即执行。
+
+以后发布新版时，递增脚本头部的 `@version`，再将改动推送到 `main` 即可，不必创建 GitHub Release。只修改代码而不增加版本号不会正常触发升级。规则见油猴官方的[更新地址说明](https://www.tampermonkey.net/documentation.php?q=update_url)和[版本号说明](https://www.tampermonkey.net/documentation.php?q=version)。
 
 ## 生效范围与行为
 
@@ -51,9 +55,9 @@ node .\tests\test-native-api.cjs
 
 测试依赖已安装且未变更时，可跳过第一条命令。`tests/node_modules/` 由项目根目录的 `.gitignore` 排除。
 
-v1.4.0 已通过 JavaScript 语法检查及 **34 项受控 API 回归测试**，保留原有三项功能的回归覆盖，新增网页全屏同轮执行、接口与状态延迟、手动退出、换房、权限限制、其他播放模式保持，以及 `Y` / `Esc` 按键边界测试。两种入口的受控环境中，四项在接口就绪后的同一轮发起。
+v1.4.1 已通过 JavaScript 语法检查及 **34 项受控 API 回归测试**，覆盖原有三项功能以及网页全屏同轮执行、接口与状态延迟、手动退出、换房、权限限制、其他播放模式保持，以及 `Y` / `Esc` 按键边界。两种入口的受控环境中，四项在接口就绪后的同一轮发起。
 
-原有 v1.3 功能已获得用户实际使用的良好反馈；本次新增的网页全屏尚未在登录后的真实直播间完成验证。受控测试不等同于真实直播间验证。
+原有 v1.3 功能已获得用户实际使用的良好反馈；网页全屏尚未在登录后的真实直播间完成验证。受控测试不等同于真实直播间验证。自动更新已核对脚本元数据和 Raw 文件，尚未在油猴中实际验证更新流程。
 
 ## 限制与排查
 

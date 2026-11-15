@@ -1,8 +1,10 @@
 // ==UserScript==
 // @name         抖音直播自动关闭弹幕和礼物特效
 // @namespace    local.douyin.live-clean
-// @version      1.4.0
+// @version      1.4.1
 // @description  直接调用网页原生方法，关闭弹幕、屏蔽礼物特效、选择最高可用画质并进入网页全屏。
+// @updateURL    https://raw.githubusercontent.com/primabrucexu/MiniTools/main/DouyinLiveClean/douyin-live-clean.user.js
+// @downloadURL  https://raw.githubusercontent.com/primabrucexu/MiniTools/main/DouyinLiveClean/douyin-live-clean.user.js
 // @match        https://live.douyin.com/*
 // @match        https://www.douyin.com/*
 // @run-at       document-idle
