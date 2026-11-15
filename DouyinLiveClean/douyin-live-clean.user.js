@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         抖音直播自动关闭弹幕和礼物特效
 // @namespace    local.douyin.live-clean
-// @version      1.4.1
-// @description  直接调用网页原生方法，关闭弹幕、屏蔽礼物特效、选择最高可用画质并进入网页全屏。
+// @version      1.4.2
+// @description  直接调用网页原生方法，关闭弹幕、屏蔽礼物特效、选择最高可用画质，进入网页全屏并收起聊天栏。
 // @updateURL    https://raw.githubusercontent.com/primabrucexu/MiniTools/main/DouyinLiveClean/douyin-live-clean.user.js
 // @downloadURL  https://raw.githubusercontent.com/primabrucexu/MiniTools/main/DouyinLiveClean/douyin-live-clean.user.js
 // @match        https://live.douyin.com/*
@@ -24,7 +24,7 @@
 
     const ROOTS = '[data-anchor-id="living-basic-player"], [data-e2e="living-container"]';
     const QUALITY_ORDER = ['origin', 'fhd', 'uhd', 'hd', 'sd', 'ld'];
-    const NAMES = { danmaku: '关闭弹幕', effects: '屏蔽礼物特效', quality: '最高可用画质', theater: '网页全屏' };
+    const NAMES = { danmaku: '关闭弹幕', effects: '屏蔽礼物特效', quality: '最高可用画质', theater: '网页全屏并收起聊天栏' };
     let room = null;
 
     function roomKey() {
@@ -116,9 +116,9 @@
             console.info('[抖音直播清爽] 保留当前全屏或画中画模式，跳过网页全屏。');
             return false;
         }
-        if (state?.isTheaterOn === true) return true;
         if (typeof state?.setIsTheaterOn !== 'function' || typeof state.isTheaterOn !== 'boolean'
-            || typeof chat?.setFoldChatroom !== 'function' || typeof paid?.isPaidLive !== 'boolean') return false;
+            || typeof chat?.setFoldChatroom !== 'function' || typeof chat.foldChatroom !== 'boolean'
+            || typeof paid?.isPaidLive !== 'boolean') return false;
         if (paid.isPaidLive) {
             if (typeof paid.paidLiveAuth?.FullScreen !== 'number') return false;
             if (paid.paidLiveAuth.FullScreen === 0) {
@@ -127,13 +127,21 @@
                 return false;
             }
         }
+        const control = [...(player?.root?.querySelectorAll('slot') || [])].find(element => element.textContent.includes('网页全屏'));
+        if (!control) return false;
+        // 原生 Y 控件挂载时会展开聊天；下一轮再操作，避免收起后被初始化覆盖。
+        if (task.control !== control) {
+            task.control = control;
+            return false;
+        }
+        if (state.isTheaterOn === true && chat.foldChatroom === true) return true;
         if (!task.sent) {
             task.sent = true;
-            // 与原生“网页全屏”按钮一致，切换布局并展开聊天区。
-            state.setIsTheaterOn(true);
-            chat.setFoldChatroom(false);
+            // 使用 Y 对应的原生网页全屏，同时收起聊天栏；已完成的部分不重复切换。
+            if (!state.isTheaterOn) state.setIsTheaterOn(true);
+            if (!chat.foldChatroom) chat.setFoldChatroom(true);
         }
-        return state.isTheaterOn === true;
+        return state.isTheaterOn === true && chat.foldChatroom === true;
     }
 
     function tick() {
@@ -178,6 +186,7 @@
     // 初始化期间若用户主动操作某项，该项也立即让出控制；完成后不会反复改回。
     document.addEventListener('pointerdown', event => {
         if (!event.isTrusted || !room || room.key !== roomKey() || !(event.target instanceof Element) || !room.root.contains(event.target)) return;
+        if (room.tasks.theater.control?.contains(event.target)) room.tasks.theater.skipped = true;
         if (event.target.closest('.QualitySwitchNewPlugin, [data-e2e="quality"], [data-e2e="quality-selector"]')) room.tasks.quality.done = true;
         for (const [name, selector] of [['danmaku', '[data-e2e="danmaku-setting-icon"]'], ['effects', '[data-e2e="gift-setting"]']]) {
             if (room.root.querySelector(selector)?.parentElement.contains(event.target)) room.tasks[name].done = true;
@@ -190,7 +199,7 @@
         if (!event.shiftKey && !event.metaKey && !event.ctrlKey && theaterKey) room.tasks.theater.skipped = true;
     }, true);
 
-    // 四项各自等待接口就绪，同一轮发起；不再串行打开菜单或固定等待 1.5 秒。
+    // 四项各自等待原生接口和控件就绪，互不阻塞。
     setInterval(tick, 250);
 })();
 

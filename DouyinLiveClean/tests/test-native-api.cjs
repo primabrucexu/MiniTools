@@ -25,6 +25,10 @@ function fixture(url = LIVE, options = {}) {
   };
   for (const type of ['mouseover', 'mouseenter', 'mouseout', 'mouseleave', 'click', 'keydown']) d.addEventListener(type, () => events.ui.push(type), true);
   const root = d.querySelector('[data-anchor-id="living-basic-player"]');
+  const mountTheaterControl = () => {
+    const control = d.createElement('slot'); control.textContent = options.theaterControlText ?? '网页全屏'; root.append(control);
+  };
+  if (options.theaterControlDelay) w.setTimeout(mountTheaterControl, options.theaterControlDelay); else mountTheaterControl();
   const createStore = (config = {}) => {
     const webId = config.webId || '111111';
     const quality = {
@@ -53,10 +57,11 @@ function fixture(url = LIVE, options = {}) {
       roomStore: {
         roomInfo: { roomId: config.roomId || '9001', web_rid: webId },
         danmakuSwitch: config.danmaku ?? true,
-        foldChatroom: config.foldChatroom ?? true,
+        foldChatroom: config.foldChatroom ?? false,
         setFoldChatroom(value) {
           events.calls.push({ kind: 'foldChatroom', value, webId, ms: now - 100000 });
-          this.foldChatroom = value;
+          const apply = () => { this.foldChatroom = value; };
+          if (config.foldDelay) w.setTimeout(apply, config.foldDelay); else apply();
         },
         setDanmakuSwitch(value) {
           events.calls.push({ kind: 'danmaku', value, webId, ms: now - 100000 });
@@ -110,18 +115,20 @@ function fixture(url = LIVE, options = {}) {
     }
     now = end;
   };
-  // Invoke the script's trusted-key handler in this controlled fixture; jsdom cannot create trusted browser events.
-  const keyHandlers = [], addEventListener = d.addEventListener.bind(d);
+  // Invoke the script's trusted input handlers in this controlled fixture; jsdom cannot create trusted browser events.
+  const keyHandlers = [], pointerHandlers = [], addEventListener = d.addEventListener.bind(d);
   d.addEventListener = (type, listener, options) => {
     if (type === 'keydown') keyHandlers.push(listener);
+    if (type === 'pointerdown') pointerHandlers.push(listener);
     return addEventListener(type, listener, options);
   };
   const userKey = (code, target = d.body, modifiers = {}) => {
     const event = { code, key: code === 'Escape' ? 'Escape' : code.slice(-1).toLowerCase(), isTrusted: true, target, shiftKey: false, ctrlKey: false, metaKey: false, altKey: false, ...modifiers };
     keyHandlers.forEach(listener => listener.call(d, event));
   };
+  const userPointerDown = target => pointerHandlers.forEach(listener => listener.call(d, { isTrusted: true, target }));
   w.eval(script);
-  return { w, d, root, initial, createStore, events, advance, userKey, originalBody, close: () => w.close() };
+  return { w, d, root, initial, createStore, events, advance, userKey, userPointerDown, originalBody, close: () => w.close() };
 }
 
 const tests = [], test = (name, run) => tests.push([name, run]);
@@ -133,21 +140,41 @@ function allOffAndHighest(store) {
   assert.equal(store.quality.isAbrOpen, false);
 }
 
-for (const url of [LIVE, FOLLOW]) test(`same-pass native API initialization ${url}`, () => {
+for (const url of [LIVE, FOLLOW]) test(`native API initialization waits only for theater control ${url}`, () => {
   const f = fixture(url); f.advance(1000); allOffAndHighest(f.initial);
-  const updates = ['danmaku', 'effects', 'quality', 'theater'].map(kind => calls(f, kind));
+  const updates = ['danmaku', 'effects', 'quality'].map(kind => calls(f, kind));
   assert.ok(updates.every(group => group.length === 1));
-  assert.equal(new Set(updates.map(group => group[0].ms)).size, 1, 'all ready methods should execute in one pass');
+  assert.ok(updates.every(group => group[0].ms === 250), 'the first three settings should execute in the first pass');
   assert.equal(calls(f, 'danmaku')[0].value, false); assert.equal(calls(f, 'effects')[0].value, false);
+  assert.equal(calls(f, 'theater').length, 1); assert.equal(calls(f, 'theater')[0].ms, 500);
   assert.equal(calls(f, 'theater')[0].value, true); assert.equal(f.initial.api.playerStore.isTheaterOn, true);
-  assert.equal(f.initial.api.roomStore.foldChatroom, false); assert.equal(calls(f, 'foldChatroom').length, 1);
+  assert.equal(f.initial.api.roomStore.foldChatroom, true); assert.equal(calls(f, 'foldChatroom').length, 1);
+  assert.equal(calls(f, 'foldChatroom')[0].value, true); assert.equal(calls(f, 'foldChatroom')[0].ms, 500);
   assert.deepEqual(f.events.ui, []); assert.equal(f.d.body.innerHTML, f.originalBody);
-  console.log('TIMING API', JSON.stringify(updates.map(group => ({ kind: group[0].kind, ms: group[0].ms }))));
+  console.log('TIMING API', JSON.stringify([...updates, calls(f, 'theater')].map(group => ({ kind: group[0].kind, ms: group[0].ms }))));
   f.close();
 });
 
+test('late theater control initialization cannot overwrite automatic chat collapse', () => {
+  const f = fixture(LIVE, { theaterControlDelay: 900 });
+  f.w.setTimeout(() => { f.initial.api.roomStore.foldChatroom = false; }, 1100);
+  f.advance(1200); allOffAndHighest(f.initial);
+  assert.equal(calls(f, 'theater').length, 0); assert.equal(calls(f, 'foldChatroom').length, 0);
+  f.advance(800);
+  assert.equal(f.initial.api.playerStore.isTheaterOn, true); assert.equal(f.initial.api.roomStore.foldChatroom, true);
+  assert.equal(calls(f, 'theater')[0].ms, 1250); assert.equal(calls(f, 'foldChatroom')[0].ms, 1250);
+  assert.equal(calls(f, 'theater').length, 1); assert.equal(calls(f, 'foldChatroom').length, 1); f.close();
+});
+
+test('an unrelated slot is not mistaken for the theater control', () => {
+  const f = fixture(LIVE, { theaterControlText: '清晰度' }); f.advance(1000); allOffAndHighest(f.initial);
+  assert.equal(calls(f, 'theater').length, 0); assert.equal(calls(f, 'foldChatroom').length, 0);
+  f.root.querySelector('slot').textContent = '网页全屏'; f.advance(500);
+  assert.equal(f.initial.api.playerStore.isTheaterOn, true); assert.equal(f.initial.api.roomStore.foldChatroom, true); f.close();
+});
+
 test('already desired states are not written again', () => {
-  const f = fixture(LIVE, { danmaku: false, effects: false, currentQuality: 'origin', theater: true, foldChatroom: false }); f.advance(2000);
+  const f = fixture(LIVE, { danmaku: false, effects: false, currentQuality: 'origin', theater: true, foldChatroom: true }); f.advance(2000);
   assert.equal(calls(f, 'danmaku').length, 0); assert.equal(calls(f, 'effects').length, 0); assert.equal(calls(f, 'quality').length, 0);
   assert.equal(calls(f, 'theater').length, 0); assert.equal(calls(f, 'foldChatroom').length, 0);
   f.close();
@@ -156,6 +183,35 @@ test('already desired states are not written again', () => {
 test('highest displayed quality with ABR still selects fixed highest quality', () => {
   const f = fixture(LIVE, { currentQuality: 'origin', abr: true }); f.advance(2000);
   assert.equal(calls(f, 'quality').length, 1); assert.equal(f.initial.quality.isAbrOpen, false); f.close();
+});
+
+test('already active theater mode still collapses an open chat without toggling theater', () => {
+  const f = fixture(LIVE, { theater: true }); f.advance(1000); allOffAndHighest(f.initial);
+  assert.equal(f.initial.api.playerStore.isTheaterOn, true); assert.equal(f.initial.api.roomStore.foldChatroom, true);
+  assert.equal(calls(f, 'theater').length, 0); assert.equal(calls(f, 'foldChatroom').length, 1); f.close();
+});
+
+test('entering theater mode preserves an already collapsed chat without rewriting it', () => {
+  const f = fixture(LIVE, { foldChatroom: true }); f.advance(1000);
+  assert.equal(f.initial.api.playerStore.isTheaterOn, true); assert.equal(f.initial.api.roomStore.foldChatroom, true);
+  assert.equal(calls(f, 'theater').length, 1); assert.equal(calls(f, 'foldChatroom').length, 0); f.close();
+});
+
+test('completion waits for the collapsed chat state as well as theater state', () => {
+  const f = fixture(LIVE, { foldDelay: 4000 }); f.advance(2000); allOffAndHighest(f.initial);
+  assert.equal(f.initial.api.playerStore.isTheaterOn, true); assert.equal(f.initial.api.roomStore.foldChatroom, false);
+  assert.equal(calls(f, 'foldChatroom').length, 1);
+  assert.equal(f.events.infos.length, 0, 'theater alone must not be reported as completed while chat remains open');
+  f.advance(4000); assert.equal(f.initial.api.roomStore.foldChatroom, true);
+  assert.equal(calls(f, 'theater').length, 1); assert.equal(calls(f, 'foldChatroom').length, 1);
+  assert.ok(f.events.infos.some(args => args.join(' ').includes('原生设置已完成'))); f.close();
+});
+
+test('manual chat reopening after completion is preserved while theater remains active', () => {
+  const f = fixture(); f.advance(1000); assert.equal(f.initial.api.roomStore.foldChatroom, true);
+  f.initial.api.roomStore.foldChatroom = false; f.advance(40000);
+  assert.equal(f.initial.api.playerStore.isTheaterOn, true); assert.equal(f.initial.api.roomStore.foldChatroom, false);
+  assert.equal(calls(f, 'foldChatroom').length, 1); f.close();
 });
 
 test('late gift setter does not delay danmaku or quality', () => {
@@ -223,10 +279,12 @@ test('room ID change in the same store resets completed features', () => {
   f.initial.api.roomStore.roomInfo.roomId = '9002';
   f.initial.api.roomStore.danmakuSwitch = true; f.initial.api.giftStore.effectSwitchStatus = true;
   f.initial.api.playerStore.isTheaterOn = false;
+  f.initial.api.roomStore.foldChatroom = false;
   f.initial.quality.manulQuality = 'sd'; f.initial.quality.realCurrentQuality = 'sd'; f.advance(1000);
   allOffAndHighest(f.initial);
   assert.equal(calls(f, 'danmaku').length, 2); assert.equal(calls(f, 'effects').length, 2); assert.equal(calls(f, 'quality').length, 2);
-  assert.equal(f.initial.api.playerStore.isTheaterOn, true); assert.equal(calls(f, 'theater').length, 2); f.close();
+  assert.equal(f.initial.api.playerStore.isTheaterOn, true); assert.equal(calls(f, 'theater').length, 2);
+  assert.equal(f.initial.api.roomStore.foldChatroom, true); assert.equal(calls(f, 'foldChatroom').length, 2); f.close();
 });
 
 test('old disconnected player cannot receive a quality change for the new room', () => {
@@ -334,6 +392,14 @@ test('manual KeyY cancels pending automatic theater mode', () => {
   const f = fixture(LIVE, { theaterMissing: true }); f.advance(1000); f.userKey('KeyY');
   f.initial.api.playerStore.setIsTheaterOn = f.initial.theaterSetter; f.advance(35000);
   allOffAndHighest(f.initial); assert.equal(calls(f, 'theater').length, 0);
+  assert.equal(f.initial.api.playerStore.isTheaterOn, false); f.close();
+});
+
+test('manual pointer on the theater control cancels pending automatic entry', () => {
+  const f = fixture(); f.advance(250);
+  const icon = f.d.createElement('span'); f.root.querySelector('slot').append(icon); f.userPointerDown(icon);
+  f.advance(35000); allOffAndHighest(f.initial);
+  assert.equal(calls(f, 'theater').length, 0); assert.equal(calls(f, 'foldChatroom').length, 0);
   assert.equal(f.initial.api.playerStore.isTheaterOn, false); f.close();
 });
 
