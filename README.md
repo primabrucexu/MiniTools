@@ -5,12 +5,13 @@
 | 工具 | 用途 | 环境 |
 | --- | --- | --- |
 | [DualScreenSwap](DualScreenSwap/README.md) | 快速交换两块显示器上各自最靠前的普通应用窗口 | Windows 10 / 11，.NET Framework 4.8 或 4.8.1 |
-| [DouyinLiveClean](DouyinLiveClean/安装说明.txt) | 进入抖音直播间后关闭弹幕、屏蔽礼物特效，并选择最高可用画质 | 安装了 Tampermonkey 的浏览器 |
+| [DouyinLiveClean](DouyinLiveClean/README.md) | 进入抖音直播间后关闭弹幕、屏蔽礼物特效，并选择最高可用画质 | 安装了 Tampermonkey 的浏览器 |
 
 ## 目录
 
 ```text
 MiniTools/
+├── .gitignore                      # 所有工具共用的忽略规则
 ├── AGENTS.md                       # 项目协作规范
 ├── README.md
 ├── DualScreenSwap/
@@ -22,6 +23,7 @@ MiniTools/
 │   ├── tests/
 │   └── bin/Release/                 # 本地可运行程序及配置
 └── DouyinLiveClean/
+    ├── README.md
     ├── douyin-live-clean.user.js
     ├── 安装说明.txt
     ├── COPYING.txt
@@ -79,10 +81,10 @@ node --check .\DouyinLiveClean\douyin-live-clean.user.js
 node .\DouyinLiveClean\tests\test-native-api.cjs
 ```
 
-现有回归测试使用受控 API 环境，不能代替登录后的真实直播间验证。脚本依赖抖音内部接口，网页改版可能需要适配；画质选择遵守页面已有的可用档位限制。详细行为、排查方式和来源见[安装说明](DouyinLiveClean/安装说明.txt)。
+现有回归测试使用受控 API 环境，不能代替登录后的真实直播间验证。脚本依赖抖音内部接口，网页改版可能需要适配；画质选择遵守页面已有的可用档位限制。详细行为、排查方式和来源见[工具 README](DouyinLiveClean/README.md)。
 
 ## 协作与许可
 
-开发和修改请遵循 [AGENTS.md](AGENTS.md)。构建产物和测试依赖应留在各工具目录内，不提交 `bin/`、`obj/` 或 `node_modules/`。
+开发和修改请遵循 [AGENTS.md](AGENTS.md)。忽略规则统一维护在根目录 [.gitignore](.gitignore)。构建产物和测试依赖应留在各工具目录内，不提交 `bin/`、`obj/` 或 `node_modules/`。
 
 抖音直播清理脚本按 **GPL-3.0-only** 发布，保留原作者来源说明，许可全文见 [COPYING.txt](DouyinLiveClean/COPYING.txt)。该许可不自动适用于其他工具；本项目未统一指定整体许可证。

@@ -4,6 +4,8 @@
 
 ## 使用
 
+从 Git 获取源码后，请先按下方“环境与编译”生成程序；编译产物由根目录的 [.gitignore](../.gitignore) 统一排除。
+
 1. 双击 `bin\Release\DualScreenSwap.exe`。
 2. 在 Windows 的“扩展这些显示器”模式下使用两块屏幕。
 3. 按 **Ctrl + Alt + P** 交换窗口；也可右键托盘图标，选择“立即交换”。
@@ -43,7 +45,7 @@
 
 Windows 10 / 11，.NET Framework 4.8 或 4.8.1。使用 Windows 自带的 Framework C# 编译器，无第三方库或 NuGet 依赖。
 
-在项目目录执行：
+以下命令均在 `DualScreenSwap` 目录执行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
@@ -72,7 +74,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration D
 
 ## 验证与边界
 
-具体测试结果见 `VALIDATION.md`。
+具体测试结果见 [VALIDATION.md](VALIDATION.md)。
+
+运行测试前先退出工具，并在可交互的 Windows 桌面执行。测试会真实注册快捷键、短暂写入并恢复用户配置，以及打开测试界面：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\run-tests.ps1
+```
+
+实际双屏窗口测试需要两块活动显示器，会创建并移动测试窗口：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\run-tests.ps1 -IncludeWindowIntegration
+```
 
 程序以普通用户权限运行。如果目标应用以管理员身份运行并拒绝移动，可让本工具使用相同权限运行。程序不会自动提权。
 
