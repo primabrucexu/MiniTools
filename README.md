@@ -5,7 +5,7 @@
 | 工具 | 用途 | 环境 |
 | --- | --- | --- |
 | [DualScreenSwap](DualScreenSwap/README.md) | 快速交换两块显示器上各自最靠前的普通应用窗口 | Windows 10 / 11，.NET Framework 4.8 或 4.8.1 |
-| [DouyinLiveClean](DouyinLiveClean/README.md) | 进入抖音直播间后关闭弹幕、屏蔽礼物特效，并选择最高可用画质 | 安装了 Tampermonkey 的浏览器 |
+| [DouyinLiveClean](DouyinLiveClean/README.md) | 进入抖音直播间后关闭弹幕、屏蔽礼物特效、选择最高可用画质并进入网页全屏 | 安装了 Tampermonkey 的浏览器 |
 
 ## 目录
 
@@ -63,7 +63,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\DualScreenSwap\tests\run-t
 
 ## 抖音直播清理
 
-当前脚本版本为 **1.3.0**。脚本直接调用网页原生状态和播放器方法，在进入直播间后关闭弹幕、屏蔽礼物特效，并选择当前可用的最高画质；右侧聊天区保留。处理完成后可手动调整设置，换房、刷新或播放器实例更换时重新初始化。
+当前脚本版本为 **1.4.0**。脚本直接调用网页原生状态和播放器方法，在进入直播间后关闭弹幕、屏蔽礼物特效、选择当前可用的最高画质，并自动进入网页全屏，保留浏览器标签栏和右侧聊天区。四项独立执行；完成后可手动调整设置或退出网页全屏，换房、刷新或播放器实例更换时重新初始化。网页全屏受限或已处于浏览器全屏、画中画时，跳过自动进入网页全屏。
 
 安装步骤：
 
@@ -81,7 +81,7 @@ node --check .\DouyinLiveClean\douyin-live-clean.user.js
 node .\DouyinLiveClean\tests\test-native-api.cjs
 ```
 
-现有回归测试使用受控 API 环境，不能代替登录后的真实直播间验证。脚本依赖抖音内部接口，网页改版可能需要适配；画质选择遵守页面已有的可用档位限制。详细行为、排查方式和来源见[工具 README](DouyinLiveClean/README.md)。
+v1.4.0 已通过 JavaScript 语法检查及 **34 项受控 API 回归测试**。原有三项功能已获用户实际使用的良好反馈；新增网页全屏尚未完成登录后的真实直播间验证。脚本依赖抖音内部接口，网页改版可能需要适配；画质选择和网页全屏遵守页面已有权限限制。详细行为、排查方式和来源见[工具 README](DouyinLiveClean/README.md)。
 
 ## 协作与许可
 

@@ -1,12 +1,12 @@
-抖音直播自动关闭弹幕和礼物特效 v1.3.0
+抖音直播自动关闭弹幕和礼物特效 v1.4.0
 
 更新或安装
 打开油猴中的旧脚本，用 douyin-live-clean.user.js 的全部内容替换，按 Ctrl+S 保存，再刷新抖音。
 首次安装：Tampermonkey → 添加新脚本 → 替换默认内容 → 保存。
 仅保留一个版本启用，避免旧版仍然模拟点击、干扰新版。
 
-本次修复
-三项分别等待自己的接口就绪，在同一轮发起，不再依次展开菜单和固定等待 1.5 秒。
+功能说明
+四项分别等待自己的接口就绪，在同一轮发起，不再依次展开菜单和固定等待 1.5 秒。
 没有模拟鼠标点击、悬停或快捷键，也没有隐藏弹幕画布。
 1. 弹幕：调用原生 roomStore.setDanmakuSwitch(false)，兼容停止旧版 danmu 插件。
 2. 礼物特效：调用原生 giftStore.setEffectSwitchStatus(false)。
@@ -15,28 +15,36 @@
    选择原生接口实际提供、当前可选的最高档位，包含原画、1440P、蓝光、超清、高清、标清。
    尊重网页已有画质限制；不自动登录，不绕过受限档位。
    等待原生切换回调，并回读当前画质和自动调档状态后才确认成功。
+4. 网页全屏：调用原生 playerStore.setIsTheaterOn(true)，并用 roomStore.setFoldChatroom(false) 展开聊天区。
+   保留浏览器标签栏，回读 isTheaterOn 确认；不重复切换已经开启的网页全屏。
+   遵守网页已有全屏权限；已处于浏览器全屏或画中画模式时，本房间跳过自动进入网页全屏。
 
 生效范围
 - https://live.douyin.com/直播间编号
 - https://www.douyin.com/follow/live/直播间编号
 支持站内进入直播和换房。右侧聊天区保留。
-三项完成后不持续强制设置；你仍可以手动开启弹幕、特效或降低画质。
+四项完成后不持续强制设置；你仍可以手动开启弹幕、特效或降低画质。
+网页全屏可用原生按钮、Y 或 Esc 退出，退出后本房间不强制恢复。
+初始化期间在非输入区域按 Y，或在网页全屏中按 Esc，也会让出网页全屏控制。
 刷新、换房或原生播放器实例更换时重新初始化。
 接口未就绪时最多等待约 30 秒；某项失败不阻塞其他项，控制台会输出“抖音直播清爽”提示。
-三个请求可在同一轮发起；实际画质切换仍需等待播放器和网络，无法保证三个视觉效果在同一瞬间完成。
+四项可在同一轮发起；实际画质切换仍需等待播放器和网络，无法保证所有视觉效果在同一瞬间完成。
 
 为什么匹配整个 www.douyin.com
 主站可能通过 SPA 导航进入关注页直播，油猴不一定重新注入脚本。
 因此预先加载脚本，但只有 /follow/live/ 路径会执行操作，普通短视频页不触发设置。
 
 验证与限制
-JavaScript 语法检查及 21 项受控 API 回归测试通过。
+v1.4.0 JavaScript 语法检查及 34 项受控 API 回归测试通过。
 覆盖两个入口、同轮执行、延迟接口、异步回调、异常隔离、手动设置保留、SPA 换房、
-同 store 房间变化、画质限制、重复档位和超时后换房恢复。
-受控环境中，三个原生方法在首次检查的同一轮发起；这不是实站测速。
+同 store 房间变化、画质限制、重复档位和超时后换房恢复；新增网页全屏状态回读、
+权限限制、其他播放模式保持，以及 Y / Esc 的手动控制边界测试。
+两种入口的受控环境中，四项在接口就绪后的同一轮发起。
+受控环境的调用时间不是实站测速。
 
 当前公开客户端源码明确暴露 window.__STORE__，并包含 /follow/live/:webRid 路由。
-但尚未在用户已登录浏览器中完成两个入口的真实端到端验证。
+原有 v1.3 三项功能已获得用户实际使用的良好反馈。
+本次新增网页全屏尚未在用户已登录浏览器中完成真实验证，也未完成两个入口的完整端到端测试。
 无登录态请求关注页会被重定向，无法证明所有关注页版本均暴露相同全局对象。
 这些是抖音内部方法，不是稳定的公开 API。网页改版可能需要更新脚本。
 缺少原生接口时不会偷偷退回模拟点击；会等待并报告未完成的项目。
@@ -44,6 +52,7 @@ JavaScript 语法检查及 21 项受控 API 回归测试通过。
 检查方法
 刷新进入直播间，查看原生面板：
 “弹幕开关”关闭，“屏蔽礼物特效”开启，清晰度为当前可选最高档，且不是自动模式。
+满足权限且未处于其他播放模式时，播放器应进入网页全屏，浏览器标签栏仍保留。
 若有一项未生效，可提供完整直播间网址和控制台包含“抖音直播清爽”的提示。
 
 源码依据
@@ -55,6 +64,8 @@ https://lf-webcast-platform.bytetos.com/obj/webcast-platform-cdn/webcast/douyin_
 https://lf-webcast-platform.bytetos.com/obj/webcast-platform-cdn/webcast/douyin_live/chunks/EffectSwitchPlugin.0279f90b.js
 原生清晰度菜单：
 https://lf-webcast-platform.bytetos.com/obj/webcast-platform-cdn/webcast/douyin_live/chunks/QualitySwitchPluginV2.45b0552e.js
+原生网页全屏按钮、状态与权限判断：
+https://lf-webcast-platform.bytetos.com/obj/webcast-platform-cdn/webcast/douyin_live/chunks/TheaterPlugin.3a6fa584.js
 播放器及流切换实现：
 https://lf-webcast-platform.bytetos.com/obj/webcast-platform-cdn/webcast/douyin_live//libs/new-player-merged.2b62795a.js
 

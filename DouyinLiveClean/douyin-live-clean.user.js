@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         抖音直播自动关闭弹幕和礼物特效
 // @namespace    local.douyin.live-clean
-// @version      1.3.0
-// @description  直接调用网页原生状态与播放器方法，关闭弹幕、屏蔽礼物特效并选择最高可用画质。
+// @version      1.4.0
+// @description  直接调用网页原生方法，关闭弹幕、屏蔽礼物特效、选择最高可用画质并进入网页全屏。
 // @match        https://live.douyin.com/*
 // @match        https://www.douyin.com/*
 // @run-at       document-idle
@@ -14,7 +14,7 @@
 // 旧版控件定位适配自 Frequenk《网页抖音体验增强》v5.8（GPL-3.0）。
 // https://greasyfork.org/zh-CN/scripts/539942/code
 // 本版依据抖音当前客户端的 RootStore、DanmaSetting、EffectSwitchPlugin
-// 和 QualitySwitchPluginV2 改用原生 JS 方法，不模拟鼠标或键盘事件。
+// 和 QualitySwitchPluginV2、TheaterPlugin 改用原生 JS 方法，不模拟鼠标或键盘事件。
 // GPL-3.0 许可全文见随附 COPYING.txt。
 
 (() => {
@@ -22,7 +22,7 @@
 
     const ROOTS = '[data-anchor-id="living-basic-player"], [data-e2e="living-container"]';
     const QUALITY_ORDER = ['origin', 'fhd', 'uhd', 'hd', 'sd', 'ld'];
-    const NAMES = { danmaku: '关闭弹幕', effects: '屏蔽礼物特效', quality: '最高可用画质' };
+    const NAMES = { danmaku: '关闭弹幕', effects: '屏蔽礼物特效', quality: '最高可用画质', theater: '网页全屏' };
     let room = null;
 
     function roomKey() {
@@ -40,7 +40,7 @@
     }
 
     function run(task, action) {
-        if (task.done || task.failed) return;
+        if (task.done || task.failed || task.skipped) return;
         try {
             task.done = action(task) === true;
         } catch (error) {
@@ -105,6 +105,35 @@
         return task.confirmed === true && selected;
     }
 
+    function enterWebFullscreen(task, store, player) {
+        const state = store?.playerStore;
+        const chat = store?.roomStore;
+        const paid = store?.paidLiveStore;
+        if (state?.isFullScreen || player?.fullscreen || document.fullscreenElement || document.pictureInPictureElement) {
+            task.skipped = true;
+            console.info('[抖音直播清爽] 保留当前全屏或画中画模式，跳过网页全屏。');
+            return false;
+        }
+        if (state?.isTheaterOn === true) return true;
+        if (typeof state?.setIsTheaterOn !== 'function' || typeof state.isTheaterOn !== 'boolean'
+            || typeof chat?.setFoldChatroom !== 'function' || typeof paid?.isPaidLive !== 'boolean') return false;
+        if (paid.isPaidLive) {
+            if (typeof paid.paidLiveAuth?.FullScreen !== 'number') return false;
+            if (paid.paidLiveAuth.FullScreen === 0) {
+                task.skipped = true;
+                console.info('[抖音直播清爽] 当前房间未开放全屏权限，跳过网页全屏。');
+                return false;
+            }
+        }
+        if (!task.sent) {
+            task.sent = true;
+            // 与原生“网页全屏”按钮一致，切换布局并展开聊天区。
+            state.setIsTheaterOn(true);
+            chat.setFoldChatroom(false);
+        }
+        return state.isTheaterOn === true;
+    }
+
     function tick() {
         const key = roomKey();
         const root = key && [...document.querySelectorAll(ROOTS)].find(visible);
@@ -126,7 +155,7 @@
         if (room.stopped) return;
         if (++room.ticks > 120) {
             room.stopped = true;
-            const missing = Object.values(room.tasks).filter(task => !task.done).map(task => NAMES[task.name]);
+            const missing = Object.values(room.tasks).filter(task => !task.done && !task.skipped).map(task => NAMES[task.name]);
             console.warn('[抖音直播清爽] 等待原生接口或结果超时：' + missing.join('、'));
             return;
         }
@@ -137,9 +166,10 @@
         run(room.tasks.danmaku, task => disableDanmaku(task, store, activePlayer));
         run(room.tasks.effects, task => disableEffects(task, store));
         run(room.tasks.quality, task => highestQuality(task, activePlayer));
-        if (Object.values(room.tasks).every(task => task.done || task.failed)) {
+        run(room.tasks.theater, task => enterWebFullscreen(task, store, activePlayer));
+        if (Object.values(room.tasks).every(task => task.done || task.failed || task.skipped)) {
             room.stopped = true;
-            if (Object.values(room.tasks).every(task => task.done)) console.info('[抖音直播清爽] 三项原生设置已完成。');
+            if (Object.values(room.tasks).every(task => task.done)) console.info('[抖音直播清爽] 四项原生设置已完成。');
         }
     }
 
@@ -152,10 +182,13 @@
         }
     }, true);
     document.addEventListener('keydown', event => {
-        if (event.isTrusted && room?.key === roomKey() && event.code === 'KeyB' && !event.target.closest?.('input, textarea, [contenteditable]')) room.tasks.danmaku.done = true;
+        if (!event.isTrusted || room?.key !== roomKey() || event.target.closest?.('input, textarea, [contenteditable]')) return;
+        if (event.code === 'KeyB') room.tasks.danmaku.done = true;
+        const theaterKey = event.code === 'KeyY' || (event.code === 'Escape' && room.store?.playerStore?.isTheaterOn === true);
+        if (!event.shiftKey && !event.metaKey && !event.ctrlKey && theaterKey) room.tasks.theater.skipped = true;
     }, true);
 
-    // 三项各自等待接口就绪，同一轮发起；不再串行打开菜单或固定等待 1.5 秒。
+    // 四项各自等待接口就绪，同一轮发起；不再串行打开菜单或固定等待 1.5 秒。
     setInterval(tick, 250);
 })();
 
