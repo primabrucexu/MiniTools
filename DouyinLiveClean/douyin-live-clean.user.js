@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         抖音直播自动关闭弹幕和礼物特效
 // @namespace    local.douyin.live-clean
-// @version      1.4.2
-// @description  直接调用网页原生方法，关闭弹幕、屏蔽礼物特效、选择最高可用画质，进入网页全屏并收起聊天栏。
+// @version      1.4.3
+// @description  直接调用网页原生方法，关闭弹幕、屏蔽礼物特效、选择最高可用画质，进入网页全屏并收起聊天栏，同时隐藏底部礼物栏。
 // @updateURL    https://raw.githubusercontent.com/primabrucexu/MiniTools/main/DouyinLiveClean/douyin-live-clean.user.js
 // @downloadURL  https://raw.githubusercontent.com/primabrucexu/MiniTools/main/DouyinLiveClean/douyin-live-clean.user.js
 // @match        https://live.douyin.com/*
@@ -26,6 +26,7 @@
     const QUALITY_ORDER = ['origin', 'fhd', 'uhd', 'hd', 'sd', 'ld'];
     const NAMES = { danmaku: '关闭弹幕', effects: '屏蔽礼物特效', quality: '最高可用画质', theater: '网页全屏并收起聊天栏' };
     let room = null;
+    let giftBarStyle = null;
 
     function roomKey() {
         const path = location.pathname.replace(/\/+$/, '');
@@ -146,6 +147,15 @@
 
     function tick() {
         const key = roomKey();
+        // 样式覆盖延迟挂载和换房后的礼物栏；原生 flex 布局会自动释放其占用空间。
+        if (key && !giftBarStyle) {
+            giftBarStyle = document.createElement('style');
+            giftBarStyle.textContent = '[data-e2e="living-container"] #BottomLayout { display: none !important; }';
+            document.head.append(giftBarStyle);
+        } else if (!key && giftBarStyle) {
+            giftBarStyle.remove();
+            giftBarStyle = null;
+        }
         const root = key && [...document.querySelectorAll(ROOTS)].find(visible);
         if (!root) {
             room = null;
