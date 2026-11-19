@@ -155,6 +155,22 @@ for (const url of [LIVE, FOLLOW]) test(`native API initialization waits only for
   f.close();
 });
 
+for (const url of [LIVE, FOLLOW]) test(`gift bars are hidden only inside the live container ${url}`, () => {
+  const f = fixture(url); f.advance(1000);
+  f.d.querySelector('[data-e2e="living-container"]').insertAdjacentHTML('beforeend', '<div id="LeftBackgroundLayout"><div id="BottomLayout"></div><div class="OperatingBarPluginContainer"><div data-e2e="gifts-container">礼物 更多 充值</div></div></div>');
+  f.root.insertAdjacentHTML('beforeend', '<button data-e2e="gift-setting">礼物特效设置</button>');
+  const outside = f.d.createElement('div'); outside.className = 'OperatingBarPluginContainer'; f.d.body.append(outside);
+  const bars = [f.d.getElementById('BottomLayout'), f.d.querySelector('#LeftBackgroundLayout > .OperatingBarPluginContainer')];
+  const settings = f.d.querySelector('[data-e2e="gift-setting"]');
+  for (const bar of bars) assert.equal(f.w.getComputedStyle(bar).display, 'none', `${bar.id || bar.className} should be hidden`);
+  assert.notEqual(f.w.getComputedStyle(settings).display, 'none'); assert.notEqual(f.w.getComputedStyle(outside).display, 'none');
+  f.w.history.pushState({}, '', '/'); f.advance(250);
+  for (const bar of bars) assert.notEqual(f.w.getComputedStyle(bar).display, 'none', 'leaving live routes should restore gift bars');
+  f.w.history.pushState({}, '', url); f.advance(250);
+  for (const bar of bars) assert.equal(f.w.getComputedStyle(bar).display, 'none', 'returning to live routes should hide gift bars again');
+  assert.notEqual(f.w.getComputedStyle(settings).display, 'none'); assert.notEqual(f.w.getComputedStyle(outside).display, 'none'); f.close();
+});
+
 test('late theater control initialization cannot overwrite automatic chat collapse', () => {
   const f = fixture(LIVE, { theaterControlDelay: 900 });
   f.w.setTimeout(() => { f.initial.api.roomStore.foldChatroom = false; }, 1100);
