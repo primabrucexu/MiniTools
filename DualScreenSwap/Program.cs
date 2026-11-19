@@ -50,6 +50,7 @@ namespace DualScreenSwap
     {
         private readonly HotkeyWindow messageWindow;
         private readonly HotkeyManager hotkeys;
+        private readonly Icon applicationIcon;
         private readonly NotifyIcon tray;
         private readonly ContextMenuStrip menu;
         private readonly ToolStripMenuItem hotkeyStatus;
@@ -75,7 +76,8 @@ namespace DualScreenSwap
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("设置…", null, delegate { OpenSettings(); });
             menu.Items.Add("退出", null, delegate { ExitThread(); });
-            tray = new NotifyIcon { Icon = SystemIcons.Application, ContextMenuStrip = menu, Visible = true };
+            applicationIcon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+            tray = new NotifyIcon { Icon = applicationIcon, ContextMenuStrip = menu, Visible = true };
             tray.DoubleClick += delegate { OpenSettings(); };
             tray.BalloonTipClicked += delegate { OpenSettings(); };
             UpdateStatus();
@@ -108,15 +110,26 @@ namespace DualScreenSwap
         private void OpenSettings()
         {
             if (settings != null) { settings.Activate(); return; }
-            settings = new SettingsForm(configured, delegate(HotkeySpec candidate)
+            bool startupEnabled;
+            try { startupEnabled = StartupRegistration.IsEnabled; }
+            catch (Exception error)
+            {
+                MessageBox.Show("无法读取开机自启动设置：" + error.Message, "双屏窗口互换", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            settings = new SettingsForm(configured, startupEnabled, delegate(HotkeySpec candidate, bool enabled)
             {
                 string error;
-                if (!hotkeys.TryChange(candidate, delegate { HotkeySettingsStore.Save(candidate); }, out error))
+                if (!hotkeys.TryChange(candidate, delegate
+                {
+                    StartupRegistration.SaveThen(enabled, Application.ExecutablePath, delegate { HotkeySettingsStore.Save(candidate); });
+                }, out error))
                     return error;
                 configured = candidate;
                 UpdateStatus();
                 return null;
             });
+            settings.Icon = applicationIcon;
             settings.FormClosed += delegate { settings.Dispose(); settings = null; };
             settings.Show();
             settings.Activate();
@@ -149,6 +162,7 @@ namespace DualScreenSwap
                 messageWindow.Dispose();
                 tray.Visible = false;
                 tray.Dispose();
+                applicationIcon.Dispose();
                 menu.Dispose();
             }
             base.Dispose(disposing);

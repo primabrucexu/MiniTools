@@ -9,10 +9,20 @@
 1. 双击 `bin\Release\DualScreenSwap.exe`。
 2. 在 Windows 的“扩展这些显示器”模式下使用两块屏幕。
 3. 按 **Ctrl + Alt + P** 交换窗口；也可右键托盘图标，选择“立即交换”。
-4. 右键托盘图标选择“设置…”，选择 Ctrl / Alt / Shift 和主键，点击“保存”。新快捷键立即生效，重启后保留。
+4. 右键托盘图标选择“设置…”，选择 Ctrl / Alt / Shift 和主键，可同时勾选“开机自启动（登录 Windows 后）”，点击“保存”。新快捷键立即生效，重启后保留。
 5. 右键托盘图标选择“退出”即可结束程序并释放快捷键。
 
 托盘图标可能位于任务栏的隐藏图标区域。双击图标也能打开设置。重复启动会提示程序已在运行。
+
+## 开机自启动与图标
+
+自启动默认关闭。在设置中勾选并保存后，当前用户下次登录 Windows 时会启动本工具并驻留托盘；取消勾选并保存即可关闭。它使用当前用户的 Windows 登录启动项，无需管理员权限，Windows 可能延迟启动。
+
+启动项只记录当前程序的完整路径。移动程序目录后，从新位置打开设置、保持勾选并再次保存，即可更新路径。若曾在 Windows“启动应用”或任务管理器中禁用本工具，还需在相应系统设置中重新启用。
+
+自启动状态直接读取 Windows 启动项。保存失败时尝试恢复原启动项并保留原快捷键；点击“取消”不保存修改。
+
+程序 EXE、托盘和设置窗口共用“双屏互换”图标。图标已嵌入 EXE，运行时无需另带图标文件。PNG 原稿与包含多种尺寸的 ICO 位于 `assets/`。
 
 ## 交换规则
 
@@ -68,6 +78,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration D
 | `Program.cs` | 托盘、消息循环、单实例、设置入口 |
 | `WindowSwapper.cs` | 窗口筛选、移动、最大化状态与失败恢复 |
 | `Hotkeys.cs` | 快捷键注册、设置窗口与配置保存 |
+| `Startup.cs` | 当前用户登录启动项的读取、保存与失败恢复 |
+| `assets/` | 程序图标原稿、多尺寸 ICO 和生成说明 |
 | `DualScreenSwap.csproj` | Visual Studio / MSBuild 项目 |
 | `build.ps1` | 使用本机 Framework 编译器构建 |
 | `app.manifest` / `App.config` | 权限、DPI 和运行时设置 |
@@ -76,7 +88,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration D
 
 具体测试结果见 [VALIDATION.md](VALIDATION.md)。
 
-运行测试前先退出工具，并在可交互的 Windows 桌面执行。测试会真实注册快捷键、短暂写入并恢复用户配置，以及打开测试界面：
+运行测试前先退出工具，并在可交互的 Windows 桌面执行。测试会真实注册快捷键、短暂写入并恢复用户配置和本工具的登录启动项，以及打开测试界面：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\run-tests.ps1

@@ -1,8 +1,10 @@
 using System;
+using System.Collections;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using Microsoft.Win32;
 using DualScreenSwap;
 
 internal static class HotkeyTests
@@ -100,8 +102,33 @@ internal static class HotkeyTests
                     }
                 }
                 Check(Free(Keys.F14), "Conflict holder releases its registration");
-                Check(!manager.TryChange(next, delegate { throw new IOException("Injected save failure"); }, out error) && error.Contains("Injected save failure"), "Save failure is surfaced");
-                Check(manager.Current.Matches(initial) && !Free(Keys.F13) && Free(Keys.F14), "Save failure retains original shortcut and releases candidate");
+                using (RegistryKey startup = Registry.CurrentUser.CreateSubKey(StartupRegistration.RunKeyPath))
+                {
+                    object original = startup.GetValue(StartupRegistration.ValueName, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
+                    RegistryValueKind kind = original == null ? RegistryValueKind.None : startup.GetValueKind(StartupRegistration.ValueName);
+                    try
+                    {
+                        bool startupWasWritten = false;
+                        Check(!manager.TryChange(next, delegate
+                        {
+                            StartupRegistration.SaveThen(true, @"C:\Test Tool\DualScreenSwap.exe", delegate
+                            {
+                                startupWasWritten = StartupRegistration.IsEnabled;
+                                throw new IOException("Injected save failure");
+                            });
+                        }, out error) && error.Contains("Injected save failure"), "Combined startup/settings save failure is surfaced");
+                        object restored = startup.GetValue(StartupRegistration.ValueName, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
+                        Check(startupWasWritten && StructuralComparisons.StructuralEqualityComparer.Equals(original, restored) &&
+                            (original == null || startup.GetValueKind(StartupRegistration.ValueName) == kind),
+                            "Combined save failure restores the original startup entry");
+                        Check(manager.Current.Matches(initial) && !Free(Keys.F13) && Free(Keys.F14), "Save failure retains original shortcut and releases candidate");
+                    }
+                    finally
+                    {
+                        if (original == null) startup.DeleteValue(StartupRegistration.ValueName, false);
+                        else startup.SetValue(StartupRegistration.ValueName, original, kind);
+                    }
+                }
                 bool didSave = false;
                 Check(manager.TryChange(next, delegate { didSave = true; }, out error) && didSave, "Successful change commits settings callback");
                 Check(manager.Current.Matches(next) && Free(Keys.F13) && !Free(Keys.F14), "Successful change releases old and reserves new shortcut");

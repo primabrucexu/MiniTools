@@ -9,6 +9,7 @@
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <CodePage>65001</CodePage>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>assets\DualScreenSwap.ico</ApplicationIcon>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
@@ -23,8 +24,11 @@
     <Compile Include="Program.cs" />
     <Compile Include="WindowSwapper.cs" />
     <Compile Include="Hotkeys.cs" />
+    <Compile Include="Startup.cs" />
     <None Include="App.config" />
     <None Include="app.manifest" />
+    <None Include="assets\DualScreenSwap.ico" />
+    <None Include="assets\DualScreenSwap.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

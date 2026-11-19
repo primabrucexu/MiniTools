@@ -4,7 +4,7 @@ $sourceDirectory = Split-Path -Parent $PSScriptRoot
 $testOutput = Join-Path $sourceDirectory 'bin\Tests'
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 New-Item -ItemType Directory -Force -Path $testOutput | Out-Null
-$testNames = @('HotkeyTests', 'SettingsStoreTests', 'SettingsCancelTest')
+$testNames = @('HotkeyTests', 'SettingsStoreTests', 'SettingsCancelTest', 'StartupTests')
 if ($IncludeWindowIntegration) { $testNames += 'WindowIntegration' }
 foreach ($testName in $testNames) {
     $executable = Join-Path $testOutput ($testName + '.exe')
@@ -13,6 +13,7 @@ foreach ($testName in $testNames) {
         '/r:System.dll', '/r:System.Core.dll', '/r:System.Drawing.dll', '/r:System.Windows.Forms.dll',
         ('/win32manifest:' + (Join-Path $sourceDirectory 'app.manifest')), ('/out:' + $executable),
         (Join-Path $PSScriptRoot ($testName + '.cs')), (Join-Path $sourceDirectory $implementation))
+    if ($testName -ne 'WindowIntegration') { $arguments += Join-Path $sourceDirectory 'Startup.cs' }
     & $compiler @arguments
     if ($LASTEXITCODE -ne 0) { throw ('Test build failed: ' + $testName) }
     Copy-Item -LiteralPath (Join-Path $sourceDirectory 'App.config') -Destination ($executable + '.config')

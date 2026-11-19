@@ -37,7 +37,7 @@ MiniTools/
 
 ## 双屏窗口交换
 
-双击 `DualScreenSwap\bin\Release\DualScreenSwap.exe` 启动，保留同目录下的 `DualScreenSwap.exe.config`。默认快捷键为 **Ctrl + Alt + P**；右键托盘图标可立即交换窗口、修改快捷键或退出。已有快捷键配置保存在 `%LOCALAPPDATA%\DualScreenSwap\settings.ini`，移动程序目录不影响配置。
+双击 `DualScreenSwap\bin\Release\DualScreenSwap.exe` 启动，保留同目录下的 `DualScreenSwap.exe.config`。默认快捷键为 **Ctrl + Alt + P**；右键托盘图标可立即交换窗口、修改快捷键、设置开机自启动或退出。自启动默认关闭，勾选并保存后在当前用户登录 Windows 时运行；移动程序目录后需从新位置重新保存自启动设置。程序、托盘和设置窗口使用统一的双屏互换图标。已有快捷键配置保存在 `%LOCALAPPDATA%\DualScreenSwap\settings.ini`，移动程序目录不影响快捷键配置。
 
 工具要求恰好两个活动显示器，并使用扩展桌面。普通窗口保留物理像素尺寸和相对屏幕位置；最大化窗口交换后仍保持最大化。F11 无边框全屏和独占全屏游戏不在支持范围内。不同分辨率、混合缩放及应用自身限制窗口尺寸的情况需要对应环境实测。
 
@@ -49,7 +49,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\DualScreenSwap\build.ps1
 
 输出目录为 `DualScreenSwap\bin\Release`。完整使用规则见[工具 README](DualScreenSwap/README.md)，原有验证记录见 [VALIDATION.md](DualScreenSwap/VALIDATION.md)。
 
-现有测试会真实注册快捷键、短暂写入并恢复用户配置，并打开测试界面。运行前先退出工具，在可交互的 Windows 桌面执行：
+现有测试会真实注册快捷键、短暂写入并恢复用户配置和本工具的登录启动项，并打开测试界面。运行前先退出工具，在可交互的 Windows 桌面执行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\DualScreenSwap\tests\run-tests.ps1

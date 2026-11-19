@@ -200,19 +200,20 @@ namespace DualScreenSwap
         private readonly CheckBox controlKey = new CheckBox();
         private readonly CheckBox altKey = new CheckBox();
         private readonly CheckBox shiftKey = new CheckBox();
+        private readonly CheckBox startWithWindows = new CheckBox();
         private readonly ComboBox mainKey = new ComboBox();
         private readonly Label preview = new Label();
         private readonly List<Keys> keys = new List<Keys>();
-        private readonly Func<HotkeySpec, string> apply;
+        private readonly Func<HotkeySpec, bool, string> apply;
 
-        internal SettingsForm(HotkeySpec current, Func<HotkeySpec, string> applySettings)
+        internal SettingsForm(HotkeySpec current, bool startupEnabled, Func<HotkeySpec, bool, string> applySettings)
         {
             apply = applySettings;
             Text = "双屏窗口互换 · 设置";
             Font = new Font("Microsoft YaHei UI", 9F);
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
-            ClientSize = new Size(480, 265);
+            ClientSize = new Size(480, 315);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
@@ -264,8 +265,13 @@ namespace DualScreenSwap
                 ForeColor = SystemColors.GrayText
             };
             Controls.Add(hint);
-            Button save = new Button { Text = "保存", Location = new Point(284, 222), Size = new Size(80, 30) };
-            Button cancel = new Button { Text = "取消", Location = new Point(376, 222), Size = new Size(80, 30), DialogResult = DialogResult.Cancel };
+            startWithWindows.Text = "开机自启动（登录 Windows 后）";
+            startWithWindows.Location = new Point(24, 228);
+            startWithWindows.AutoSize = true;
+            startWithWindows.Checked = startupEnabled;
+            Controls.Add(startWithWindows);
+            Button save = new Button { Text = "保存", Location = new Point(284, 272), Size = new Size(80, 30) };
+            Button cancel = new Button { Text = "取消", Location = new Point(376, 272), Size = new Size(80, 30), DialogResult = DialogResult.Cancel };
             save.Click += SaveClicked;
             cancel.Click += delegate { Close(); };
             Controls.Add(save);
@@ -291,10 +297,10 @@ namespace DualScreenSwap
         {
             HotkeySpec selected = SelectedHotkey();
             string error = selected.Validate();
-            if (error == null) error = apply(selected);
+            if (error == null) error = apply(selected, startWithWindows.Checked);
             if (error != null)
             {
-                MessageBox.Show(this, error, "无法保存快捷键", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, error, "无法保存设置", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
             DialogResult = DialogResult.OK;
